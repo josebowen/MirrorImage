@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mirror Image</title>
+<meta name="description" content="Two mirror-image forms of ibuprofen. Find the chirality center, name it R or S, and dock both in a chiral pocket.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>/*CSS*/</style>
+</head>
+<body data-state="title">
+<canvas id="gl" role="img" tabindex="0" aria-label="Live 3D view of two mirror-image ibuprofen molecules. Drag or use arrow keys to turn the active molecule."></canvas>
+<div id="labels" aria-hidden="true"></div>
+<div id="flash" aria-hidden="true"></div>
+
+<main id="title">
+  <div class="in">
+    <p class="kick">Organic chemistry · stereochemistry</p>
+    <h1>Mirror <em>Image</em></h1>
+    <p class="sub">Ibuprofen comes in two mirror-image forms. Same atoms, same bonds. Only one fits its target. Find out which, and why.</p>
+    <div class="row"><button class="btn pri big" data-act="begin">Start</button><button class="btn" data-act="about">About this demo</button></div>
+    <p class="foot">About 5 minutes · Chemistry checked against OpenStax, Organic Chemistry, Chapter 5 · Best on a large screen</p>
+  </div>
+</main>
+
+<header id="top">
+  <span class="brand">Mirror Image</span>
+  <ol id="steps" aria-label="Progress"><li>Mirror</li><li>Center</li><li>Rank</li><li>R or S</li><li>Pocket</li><li>Debrief</li></ol>
+  <span class="sp"></span>
+  <div class="tools"><button class="btn sm" id="soundBtn" data-act="sound" aria-pressed="true">Sound on</button><button class="btn sm" data-act="about">About</button></div>
+</header>
+<div id="hint" role="status"></div>
+<div id="meter" role="status"></div>
+
+<aside id="panel" aria-label="Step panel"><div id="panelBody" aria-live="polite"></div></aside>
+
+<div id="modal" role="dialog" aria-modal="true" aria-labelledby="aboutH" hidden>
+  <div class="card"><button class="btn sm" id="modalClose" data-act="closeAbout">Close</button><div id="aboutBody"></div></div>
+</div>
+<script>/*JS*/</script>
+</body>
+</html>
