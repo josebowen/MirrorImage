@@ -125,3 +125,6 @@ body.alarm::after{animation:alarm 1.3s 2}
 .fb{border-left:3px solid var(--cy);padding:9px 12px;background:rgba(195,177,255,.1);border-radius:0 10px 10px 0;min-height:1em}.fb.bad{border-color:var(--amber);background:rgba(255,178,77,.1)}.fb.good{border-color:var(--ok);background:rgba(111,240,176,.1)}
 .seg.two{grid-template-columns:1fr 1fr}
 @media (max-width:819px){#meter{left:50%;bottom:calc(46dvh + 10px);font-size:13px;padding:7px 14px}#hint{left:50%;bottom:auto;top:44px;font-size:12px}}
+
+#steps li{white-space:nowrap}
+@media (max-width:1320px) and (min-width:820px){.brand{display:none}#steps li{padding:5px 9px}}

@@ -1,0 +1,21 @@
+// Real mouse events: drag must turn molecule B before and after "Try it", and must never orbit the camera mid-task.
+import puppeteer from 'puppeteer-core';
+const b = await puppeteer.launch({ executablePath: '/usr/bin/google-chrome', headless: 'new', args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+const p = await b.newPage(); await p.setViewport({ width: 1181, height: 648 });
+const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+await p.goto('file://' + process.cwd() + '/index.html?dtcap=0.3');
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const drag = async () => { await p.mouse.move(500, 330); await p.mouse.down(); for (let i = 1; i <= 10; i++) { await p.mouse.move(500 + i * 10, 330 + i * 5); await wait(100); } await p.mouse.up(); await wait(500); };
+const shotCam = () => p.evaluate(() => JSON.stringify(__demo.state().camOrbit) + '|' + JSON.stringify(__demo.state().qB));
+await wait(1500);
+await p.evaluate(() => document.querySelector('[data-act=begin]').click()); await wait(4000);
+const cam0 = await shotCam(); await drag(); const cam1 = await shotCam();
+const need = await p.evaluate(() => ({ need: document.querySelector('#need')?.textContent, dis: document.querySelector('[data-act=mirrorTry]').disabled }));
+await p.screenshot({ path: 'test/out/drag-predict.png' });
+await p.evaluate(() => document.querySelector('input[name=m][value=no]').click()); await wait(300);
+const after = await p.evaluate(() => ({ need: !!document.querySelector('#need'), dis: document.querySelector('[data-act=mirrorTry]').disabled }));
+await p.evaluate(() => document.querySelector('[data-act=mirrorTry]').click()); await wait(2500);
+const o0 = await p.evaluate(() => __demo.state().overlap); await drag(); const cam2 = await shotCam();
+await p.screenshot({ path: 'test/out/drag-try.png' });
+console.log(JSON.stringify({ cam0, cam1, cam2, need, after, o0, errs }));
+await b.close();

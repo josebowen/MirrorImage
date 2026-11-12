@@ -94,7 +94,9 @@ function updateRig(dt) {
 // ---------- input: drag rotates the active molecule, tap picks an atom ----------
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 function rotateActive(dx, dy) {
-  const m = S.active; if (!m) { rig.uy = clamp(rig.uy - dx * 0.6, -0.7, 0.7); rig.up = clamp(rig.up + dy * 0.5, -0.3, 0.4); return; }
+  const m = S.active;
+  if (!m) { // the camera only orbits on the title and debrief screens, so a drag never moves the whole scene mid-task
+    if (S.step === 'title' || S.step === 'debrief') { rig.uy = clamp(rig.uy - dx * 0.6, -0.7, 0.7); rig.up = clamp(rig.up + dy * 0.5, -0.3, 0.4); } return; }
   const up = tmp.set(0, 1, 0).applyQuaternion(camera.quaternion), right = tmp2.set(1, 0, 0).applyQuaternion(camera.quaternion);
   const q = new THREE.Quaternion().setFromAxisAngle(up, dx).multiply(new THREE.Quaternion().setFromAxisAngle(right, dy));
   m.group.quaternion.premultiply(q).normalize(); m.tq = null; S.moved = true;
@@ -104,6 +106,7 @@ function rotateActive(dx, dy) {
   canvas.addEventListener('pointermove', (e) => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; moved += Math.abs(dx) + Math.abs(dy); rotateActive(dx * 0.008, dy * 0.008); drag = { x: e.clientX, y: e.clientY }; });
   canvas.addEventListener('pointerup', (e) => { if (drag && moved < 6) pick(e.clientX, e.clientY); drag = null; });
   canvas.addEventListener('pointercancel', () => { drag = null; });
+  canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
   addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeAbout();
     if (/^(INPUT|BUTTON|A|SELECT)$/.test(document.activeElement.tagName)) return;
@@ -171,7 +174,7 @@ function render() {
   const T = TEXT;
   if (st === 'mirror') {
     h = `<p class="kick">Step 1 of 5</p><h2 tabindex="-1">${T.mirror.title}</h2>`;
-    if (sub === 'predict') h += T.mirror.intro + `<fieldset class="q"><legend>${T.mirror.q}</legend>${seg('m', [['yes', 'Yes'], ['no', 'No']], true)}</fieldset><div class="row">${btn('mirrorTry', 'Try it', 'pri', !S.preds.m)}</div>`;
+    if (sub === 'predict') h += T.mirror.intro + `<fieldset class="q"><legend>${T.mirror.q}</legend>${seg('m', [['yes', 'Yes'], ['no', 'No']], true)}</fieldset><div class="row">${btn('mirrorTry', 'Try it', 'pri', !S.preds.m)}${S.preds.m ? '' : '<span class="hint" id="need">Choose Yes or No first.</span>'}</div>`;
     else if (sub === 'try') h += T.mirror.try + `<div class="row">${btn('mirrorCheck', 'I am done trying')}</div>`;
     else h += `<ul class="verdict"><li class="${S.score.m ? 'ok' : 'no'}"><span class="mark">${S.score.m ? '✓' : '✕'}</span><div><b>They cannot be superimposed.</b><small>${S.score.m ? 'You predicted that.' : 'You predicted they could.'} Your best was ${S.best} of 4 groups.</small></div></li></ul>` + T.mirror.result + src(['5.2']) + `<div class="row">${btn('next', 'Next: find out why')}</div>`;
   } else if (st === 'center') {
@@ -185,7 +188,7 @@ function render() {
     else h += `<ul class="verdict"><li class="${S.score.call ? 'ok' : 'no'}"><span class="mark">${S.score.call ? '✓' : '✕'}</span><div><b>Counterclockwise. A is (S)-ibuprofen.</b><small>${S.score.call ? 'Correct.' : 'You chose clockwise.'}</small></div></li></ul>` + T.turn.result + src(['5.5']) + `<div class="row">${btn('next', 'Next: test both in the body')}</div>`;
   } else if (st === 'pocket') {
     h = `<p class="kick">Step 5 of 5</p><h2 tabindex="-1">${T.pocket.title}</h2>`;
-    if (sub === 'predict') h += T.pocket.intro + `<fieldset class="q"><legend>${T.pocket.q}</legend>${seg('p', [['both', 'Both seat'], ['one', 'Only one seats'], ['none', 'Neither seats']])}</fieldset><div class="row">${btn('dockA', 'Dock molecule A', 'pri', !S.preds.p)}</div>`;
+    if (sub === 'predict') h += T.pocket.intro + `<fieldset class="q"><legend>${T.pocket.q}</legend>${seg('p', [['both', 'Both seat'], ['one', 'Only one seats'], ['none', 'Neither seats']])}</fieldset><div class="row">${btn('dockA', 'Dock molecule A', 'pri', !S.preds.p)}${S.preds.p ? '' : '<span class="hint" id="need">Choose a prediction first.</span>'}</div>`;
     else if (sub === 'dockA') h += T.pocket.dockA + `<div class="row">${btn('showDock', 'Show me', 'ghost')}</div>`;
     else if (sub === 'seatedA') h += T.pocket.seatedA + `<div class="row">${btn('dockB', 'Now dock molecule B')}</div>`;
     else if (sub === 'dockB') h += T.pocket.dockB + `<div class="row">${btn('giveUp', 'It will not seat', 'pri', S.best < 2 && S.timer < 14)}</div>`;
@@ -200,7 +203,7 @@ function render() {
 panel.addEventListener('change', (e) => {
   const t = e.target; if (t.type !== 'radio') return; S.preds[t.name] = t.value;
   if (t.name === 'c') { S.score.call = t.value === viewedConfig(A); S.sub = 'done'; tone(S.score.call ? 660 : 180, 0.05); render(); return; }
-  const b = panel.querySelector('.btn.pri'); if (b) b.disabled = false;
+  const b = panel.querySelector('.btn.pri'); if (b) b.disabled = false; const need = $('#need'); if (need) need.remove();
 });
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); if (b) act(b.dataset.act); });
 
@@ -211,7 +214,7 @@ function go(step, sub) {
   S.step = step; S.sub = sub; S.fb = ''; S.fbClass = ''; S.active = null; S.best = 0; S.timer = 0; S.hold = 0; S.moved = false; hint(''); meter(null); ghost.group.visible = false;
   A.setGlow({}); B.setGlow({});
   if (step === 'title') { A.pos.set(-6.5, 0, 0); B.pos.set(6.5, 0, 0); setView('title'); }
-  if (step === 'mirror') { A.pos.set(-6.5, 0, 0); B.pos.set(6.5, 0, 0); A.tq = Q0.clone(); B.tq = mirrorQ(Q0); setView('mirror'); }
+  if (step === 'mirror') { A.pos.set(-6.5, 0, 0); B.pos.set(6.5, 0, 0); A.tq = Q0.clone(); B.tq = mirrorQ(Q0); setView('mirror'); S.active = B; hint('Drag to turn molecule B.'); }
   if (step === 'center') { S.sub = 'find'; A.tq = Q0.clone(); A.pos.set(-6.5, 0, 0); B.pos.set(22, 0, -6); setView('solo'); S.active = A; feedback(TEXT.centerStart); hint('Drag to turn the molecule. Tap an atom to choose it.'); }
   if (step === 'rank') { S.sub = 'rank'; S.rank = []; S.rankMiss = false; S.active = A; setView('solo'); feedback(TEXT.rankStart); hint('Tap any atom in a group to choose that group.'); }
   if (step === 'turn') { S.sub = 'turn'; S.active = A; setView('solo'); hint('Drag to turn the molecule.'); }
@@ -285,7 +288,7 @@ function frame(now) {
 }
 
 window.__demo = {
-  state: () => ({ step: S.step, sub: S.sub, score: S.score, best: S.best, configA: dataA.config, configB: dataB.config, viewedA: viewedConfig(A), atoms: dataA.atoms.length, overlap: S.step === 'mirror' ? overlap() : null, contactsA: contacts(A).length, contactsB: contacts(B).length }),
+  state: () => ({ step: S.step, sub: S.sub, active: S.active && S.active.name, camOrbit: [rig.uy, rig.up], qB: B.group.quaternion.toArray().map((v) => +v.toFixed(3)), score: S.score, best: S.best, configA: dataA.config, configB: dataB.config, viewedA: viewedConfig(A), atoms: dataA.atoms.length, overlap: S.step === 'mirror' ? overlap() : null, contactsA: contacts(A).length, contactsB: contacts(B).length }),
   go: (s, sub) => { go(s, sub); setView(Object.keys(VIEWS).find((k) => VIEWS[k] === rig.view), true); for (const m of [A, B]) { m.group.position.copy(m.pos); if (m.tq) { m.group.quaternion.copy(m.tq); m.tq = null; } } },
   act, rotate: (dx, dy) => rotateActive(dx, dy),
   pickKind: (kind, group) => { const i = dataA.atoms.findIndex((a) => a.kind === kind && (!group || a.group === group)); const p = dataA.atoms[i].p.clone().applyQuaternion(A.group.quaternion).add(A.group.position).project(camera); pick((p.x + 1) / 2 * W, (1 - p.y) / 2 * H); },

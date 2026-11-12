@@ -9,7 +9,7 @@ export const STEPS = ['Mirror', 'Center', 'Rank', 'R or S', 'Pocket', 'Debrief']
 export const TEXT = {
   mirror: { title: 'The mirror test',
     intro: '<p>These are two forms of ibuprofen. They have the same atoms joined in the same order. Molecule B is the mirror image of molecule A.</p>',
-    q: 'Can B be turned so that it matches A exactly?',
+    q: 'Predict first. Can B be turned so that it matches A exactly?',
     try: '<p>Turn molecule B until it sits exactly on the faint outline of A. The meter counts how many of the four groups around the central carbon line up.</p>',
     result: '<p>You can line up two groups at a time. The other two always end up swapped. A molecule that cannot be superimposed on its mirror image is chiral. The two forms are called enantiomers.</p>' },
   center: { title: 'Find the chirality center', intro: '<p>The usual cause of chirality is a carbon atom bonded to four different groups. Ibuprofen has one. Find it.</p>' },
@@ -34,7 +34,7 @@ export const TEXT = {
     result: '<p>Its mirror image, molecule B, runs clockwise, so B is (R)-ibuprofen. The two differ only in this handedness.</p>' },
   pocket: { title: 'Does handedness matter?',
     intro: '<p>A drug works by fitting a receptor in the body. Receptors are built from chiral molecules, so they are handed too.</p><p>This model receptor has three binding sites: a charged site for the acid, a greasy channel for the ring and a small notch for the methyl group.</p>',
-    q: 'What will happen when each form tries to dock?',
+    q: 'Predict first. What will happen when each form tries to dock?',
     dockA: '<p>Turn molecule A, the (S) form, until the acid, the ring and the methyl group each face their site.</p>',
     seatedA: '<p>All three sites match and the molecule seats.</p>',
     dockB: '<p>Now turn molecule B, the (R) form. Try to make all three contacts at once.</p>',
