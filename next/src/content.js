@@ -60,7 +60,7 @@ export const ABOUT = `
 <li>The mirror test and the docking test count groups that point within 24 degrees of their target. A search over 60,000 orientations confirms that the mirror image never lines up more than two of four groups, and never makes more than two of three contacts.</li>
 </ul>
 <h3>How your thinking is recorded</h3>
-<p>The page keeps your two predictions, the reason and confidence you gave, every atom you tapped while looking for the chirality center, every ranking miss, and whether you used Show me. The debrief plays that record back. A step finished with Show me is reported as shown to you. Nothing is sent anywhere.</p>
+<p>The page keeps your two predictions, the reason and confidence you gave, every atom you tapped while looking for the chirality center, every ranking miss, and whether you used Show me. The debrief plays that record back. A step finished with Show me is reported as shown to you. The debrief also reports time on open decisions, including time spent turning the molecules. Nothing is sent anywhere.</p>
 <h3>Simplifications</h3>
 <ul>
 <li>The molecule is shown rigid in one idealized shape. Real molecules flex and rotate about single bonds. Bond lengths and angles are textbook averages, not measured values for ibuprofen.</li>

@@ -1,4 +1,5 @@
 // Mirror Image. One mission: the two mirror-image forms of ibuprofen.
+import { EF } from './effort.js';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -168,6 +169,8 @@ const btn = (act, label, cls = 'pri', dis) => `<button class="btn ${cls}" data-a
 function feedback(t, cls) { S.fb = t; S.fbClass = cls || ''; const el = $('#fb'); if (el) { el.innerHTML = t; el.className = 'fb ' + S.fbClass; } }
 const fbBox = () => `<p id="fb" class="fb ${S.fbClass}" role="status">${S.fb}</p>`;
 const src = (list) => `<p class="src">Source: ${list.map(cite).join(', ')}</p>`;
+const EFL = { 'mirror:predict': 'Mirror test: prediction', 'mirror:try': 'Mirror test: trying by hand', 'center:find': 'Finding the chirality center', 'rank:rank': 'Ranking the groups', 'turn:turn': 'Turning the hydrogen back', 'turn:call': 'Naming R or S', 'pocket:predict': 'Receptor: prediction', 'pocket:dockA': 'Docking molecule A', 'pocket:dockB': 'Docking molecule B' };
+EF.watch(() => EFL[S.step + ':' + S.sub] || null);
 const whyL = (k) => (TEXT.mirror.why.find((o) => o[0] === k) || [, 'none given'])[1];
 const KIND = { ch3: 'a CH<sub>3</sub> carbon', ch2: 'a CH<sub>2</sub> carbon', ring: 'a ring carbon', acid: 'the acid carbon', ch: 'the carbon that holds two methyl groups', o: 'an oxygen', h: 'a hydrogen' };
 function trail() {
@@ -208,7 +211,7 @@ function render() {
   } else if (st === 'debrief') {
     const sc = S.score, items = [['m', 'Predicted the mirror test'], ['center', 'Found the chirality center on the first try'], ['rank', 'Ranked the groups without a miss'], ['call', 'Named the configuration'], ['p', 'Predicted the pocket']];
     const n = items.filter(([k]) => sc[k]).length;
-    h = `<p class="kick">Debrief</p><h2 tabindex="-1">${n} of 5</h2><ul class="obj">${items.map(([k, t]) => `<li class="${sc[k] ? 'ok' : ''}"><span class="mark">${sc[k] ? '✓' : '○'}</span><div>${t}</div></li>`).join('')}</ul><h3>Your reasoning, played back</h3><ul class="try">${trail().map((t) => `<li>${t}</li>`).join('')}</ul><h3>What you practiced</h3><ul class="try">${T.objectives.map((o) => `<li>${o}</li>`).join('')}</ul><h3>About ibuprofen</h3>${T.debrief}<p class="src">${T.credit}</p><div class="row">${btn('restart', 'Start over')}${btn('about', 'About this demo', 'ghost')}</div>`;
+    h = `<p class="kick">Debrief</p><h2 tabindex="-1">${n} of 5</h2><ul class="obj">${items.map(([k, t]) => `<li class="${sc[k] ? 'ok' : ''}"><span class="mark">${sc[k] ? '✓' : '○'}</span><div>${t}</div></li>`).join('')}</ul><h3>Your reasoning, played back</h3><ul class="try">${trail().map((t) => `<li>${t}</li>`).join('')}</ul>${EF.html()}<h3>What you practiced</h3><ul class="try">${T.objectives.map((o) => `<li>${o}</li>`).join('')}</ul><h3>About ibuprofen</h3>${T.debrief}<p class="src">${T.credit}</p><div class="row">${btn('restart', 'Start over')}${btn('about', 'About this demo', 'ghost')}</div>`;
   }
   panel.innerHTML = h; panel.parentElement.scrollTop = 0; const h2 = panel.querySelector('h2'); if (h2 && S.focusNext) h2.focus({ preventScroll: true }); S.focusNext = true;
 }
