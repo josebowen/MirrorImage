@@ -10,6 +10,8 @@ export const TEXT = {
   mirror: { title: 'The mirror test',
     intro: '<p>These are two forms of ibuprofen. They have the same atoms joined in the same order. Molecule B is the mirror image of molecule A.</p>',
     q: 'Predict first. Can B be turned so that it matches A exactly?',
+    whyQ: 'Your reason',
+    why: [['same', 'Same atoms and bonds, so a turn will do it'], ['swap', 'Two groups on one carbon will stay swapped'], ['ring', 'The ring is too bulky to turn far enough']],
     try: '<p>Turn molecule B until it sits exactly on the faint outline of A. The meter counts how many of the four groups around the central carbon line up.</p>',
     result: '<p>You can line up two groups at a time. The other two always end up swapped. A molecule that cannot be superimposed on its mirror image is chiral. The two forms are called enantiomers.</p>' },
   center: { title: 'Find the chirality center', intro: '<p>The usual cause of chirality is a carbon atom bonded to four different groups. Ibuprofen has one. Find it.</p>' },
@@ -21,7 +23,7 @@ export const TEXT = {
     ch: 'Close, but no. This carbon holds two identical CH<sub>3</sub> groups.', o: 'That is an oxygen. Look for a carbon.', h: 'That is a hydrogen. Look for a carbon.' },
   rank: { title: 'Rank the four groups',
     intro: '<p>The sequence rules rank the four groups from 1 to 4.</p><p><b>Rule 1.</b> Higher atomic number at the point of attachment ranks higher.<br><b>Rule 2.</b> On a tie, compare the next atoms out.<br><b>Rule 3.</b> A double bond counts as two single bonds to that atom.</p><p>Tap the groups in order, highest first.</p>' },
-  rankStart: 'Three of the four attach through carbon, so rule 1 only settles last place.',
+  rankStart: 'Tap the group you rank first. Wrong taps are recorded, with the rule that settles them.',
   rankCenter: 'That is the chirality center itself. Tap one of the four groups attached to it.',
   rankOk: { Acid: 'Rank 1. The acid carbon carries (O, O, O). The double-bonded oxygen counts twice.', Aryl: 'Rank 2. The ring carbon carries (C, C, C).', Me: 'Rank 3. The methyl carbon carries (H, H, H). Hydrogen takes rank 4.' },
   rankWrong: {
@@ -57,6 +59,8 @@ export const ABOUT = `
 <li>R or S is computed from the 3D positions of the four groups, not stored as an answer.</li>
 <li>The mirror test and the docking test count groups that point within 24 degrees of their target. A search over 60,000 orientations confirms that the mirror image never lines up more than two of four groups, and never makes more than two of three contacts.</li>
 </ul>
+<h3>How your thinking is recorded</h3>
+<p>The page keeps your two predictions, the reason and confidence you gave, every atom you tapped while looking for the chirality center, every ranking miss, and whether you used Show me. The debrief plays that record back. A step finished with Show me is reported as shown to you. The debrief also reports time on open decisions, including time spent turning the molecules. Nothing is sent anywhere.</p>
 <h3>Simplifications</h3>
 <ul>
 <li>The molecule is shown rigid in one idealized shape. Real molecules flex and rotate about single bonds. Bond lengths and angles are textbook averages, not measured values for ibuprofen.</li>

@@ -1,4 +1,5 @@
 // Mirror Image. One mission: the two mirror-image forms of ibuprofen.
+import { EF } from './effort.js';
 import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
@@ -64,7 +65,7 @@ function resize() { W = innerWidth; H = innerHeight; const pr = Math.min(deviceP
 addEventListener('resize', resize); resize();
 
 // ---------- state ----------
-const S = { step: 'title', T: 0, active: null, score: {}, preds: {}, rank: [], rankMiss: false, centerMiss: false, fb: '', fbClass: '', best: 0, timer: 0, hold: 0 };
+const S = { step: 'title', T: 0, active: null, score: {}, preds: {}, log: { center: [], rank: 0, shown: [] }, rank: [], rankMiss: false, centerMiss: false, fb: '', fbClass: '', best: 0, timer: 0, hold: 0 };
 const ORDER = ['title', 'mirror', 'center', 'rank', 'turn', 'pocket', 'debrief'];
 const GLOW = { Acid: 0xff5fa8, Aryl: 0xffb54a, Me: 0x59d98a, H: 0xffffff, center: 0xc3b1ff };
 
@@ -119,13 +120,13 @@ function pick(x, y) {
   ray.setFromCamera(ndc, camera); const hit = ray.intersectObjects(A.atomMeshes, false)[0]; if (!hit) return;
   const atom = dataA.atoms[hit.object.userData.atom];
   if (S.step === 'center' && S.sub === 'find') {
-    if (atom.kind === 'center') { S.score.center = !S.centerMiss; S.sub = 'done'; feedback(TEXT.centerRight, 'good'); tone(660, 0.05); render(); }
-    else { S.centerMiss = true; feedback(TEXT.centerWrong[atom.kind] || TEXT.centerWrong.h, 'bad'); tone(180, 0.04); }
+    if (atom.kind === 'center') { EF.resolved(); EF.mark({ ok: !S.centerMiss }); S.score.center = !S.centerMiss; S.sub = 'done'; feedback(TEXT.centerRight, 'good'); tone(660, 0.05); render(); }
+    else { EF.wrong(); S.centerMiss = true; S.log.center.push(atom.kind); feedback(TEXT.centerWrong[atom.kind] || TEXT.centerWrong.h, 'bad'); tone(180, 0.04); }
   } else if (S.step === 'rank' && S.sub === 'rank') {
     const g = atom.group; if (g === 'center') return feedback(TEXT.rankCenter, 'bad'); if (S.rank.includes(g)) return;
     const want = PRIORITY[S.rank.length];
-    if (g === want) { S.rank.push(g); tone(520 + S.rank.length * 90, 0.05); feedback(TEXT.rankOk[g], 'good'); if (S.rank.length === 3) { S.rank.push('H'); } if (S.rank.length === 4) { S.score.rank = !S.rankMiss; S.sub = 'done'; render(); } }
-    else { S.rankMiss = true; feedback(TEXT.rankWrong[want][g], 'bad'); tone(180, 0.04); }
+    if (g === want) { S.rank.push(g); tone(520 + S.rank.length * 90, 0.05); feedback(TEXT.rankOk[g], 'good'); if (S.rank.length === 3) { S.rank.push('H'); } if (S.rank.length === 4) { EF.resolved(); EF.mark({ ok: !S.rankMiss }); S.score.rank = !S.rankMiss; S.sub = 'done'; render(); } }
+    else { EF.wrong(); S.rankMiss = true; S.log.rank++; feedback(TEXT.rankWrong[want][g], 'bad'); tone(180, 0.04); }
   }
 }
 
@@ -168,15 +169,29 @@ const btn = (act, label, cls = 'pri', dis) => `<button class="btn ${cls}" data-a
 function feedback(t, cls) { S.fb = t; S.fbClass = cls || ''; const el = $('#fb'); if (el) { el.innerHTML = t; el.className = 'fb ' + S.fbClass; } }
 const fbBox = () => `<p id="fb" class="fb ${S.fbClass}" role="status">${S.fb}</p>`;
 const src = (list) => `<p class="src">Source: ${list.map(cite).join(', ')}</p>`;
+const EFL = { 'mirror:predict': 'Mirror test: prediction', 'mirror:try': 'Mirror test: trying by hand', 'center:find': 'Finding the chirality center', 'rank:rank': 'Ranking the groups', 'turn:turn': 'Turning the hydrogen back', 'turn:call': 'Naming R or S', 'pocket:predict': 'Receptor: prediction', 'pocket:dockA': 'Docking molecule A', 'pocket:dockB': 'Docking molecule B' };
+EF.watch(() => EFL[S.step + ':' + S.sub] || null);
+const whyL = (k) => (TEXT.mirror.why.find((o) => o[0] === k) || [, 'none given'])[1];
+const KIND = { ch3: 'a CH<sub>3</sub> carbon', ch2: 'a CH<sub>2</sub> carbon', ring: 'a ring carbon', acid: 'the acid carbon', ch: 'the carbon that holds two methyl groups', o: 'an oxygen', h: 'a hydrogen' };
+function trail() {
+  const p = S.preds, L = S.log, sure = ['guessing', 'fairly sure', 'very sure'][+p.pc || 0];
+  return [
+    `Mirror test. You predicted ${p.m === 'no' ? 'they could not be matched' : 'they could be matched'}. Your reason: ${whyL(p.mw).toLowerCase()}. Your best try lined up ${L.best ?? 0} of 4 groups.`,
+    `Chirality center. ${L.center.length ? 'Before finding it you tapped ' + L.center.map((k) => KIND[k] || 'another atom').join(', then ') + '.' : 'You found it on the first tap.'}`,
+    `Ranking. ${L.rank ? L.rank + ' wrong tap' + (L.rank > 1 ? 's' : '') + ' before the order was right.' : 'No wrong taps.'}`,
+    `R or S. ${S.score.call === undefined ? 'Not played.' : S.score.call ? 'You named it correctly.' : 'You named it the wrong way round.'} ${L.shown.includes('turn') ? 'The hydrogen was turned to the back for you with Show me.' : 'You turned the hydrogen to the back yourself.'}`,
+    `Receptor. You predicted ${{ both: 'both would seat', one: 'only one would seat', none: 'neither would seat' }[p.p] || 'nothing'}, ${sure}. ${L.shown.includes('dock') ? 'Molecule A was docked for you with Show me.' : 'You docked molecule A yourself.'}`,
+  ];
+}
 function render() {
   const st = S.step, sub = S.sub; let h = ''; document.body.dataset.state = st;
   document.querySelectorAll('#steps li').forEach((li, i) => { const cur = ORDER.indexOf(st) - 1; li.className = i === cur ? 'cur' : i < cur ? 'done' : ''; });
   const T = TEXT;
   if (st === 'mirror') {
     h = `<p class="kick">Step 1 of 5</p><h2 tabindex="-1">${T.mirror.title}</h2>`;
-    if (sub === 'predict') h += T.mirror.intro + `<fieldset class="q"><legend>${T.mirror.q}</legend>${seg('m', [['yes', 'Yes'], ['no', 'No']], true)}</fieldset><div class="row">${btn('mirrorTry', 'Try it', 'pri', !S.preds.m)}${S.preds.m ? '' : '<span class="hint" id="need">Choose Yes or No first.</span>'}</div>`;
+    if (sub === 'predict') h += T.mirror.intro + `<fieldset class="q"><legend>${T.mirror.q}</legend>${seg('m', [['yes', 'Yes'], ['no', 'No']], true)}</fieldset><fieldset class="q"><legend>${T.mirror.whyQ}</legend><div class="seg" style="grid-template-columns:1fr">${T.mirror.why.map(([v, l]) => `<label><input type="radio" name="mw" value="${v}" ${S.preds.mw === v ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div></fieldset><div class="row">${btn('mirrorTry', 'Try it', 'pri', !(S.preds.m && S.preds.mw))}${S.preds.m && S.preds.mw ? '' : '<span class="hint" id="need">Choose an answer and a reason first.</span>'}</div>`;
     else if (sub === 'try') h += T.mirror.try + `<div class="row">${btn('mirrorCheck', 'I am done trying')}</div>`;
-    else h += `<ul class="verdict"><li class="${S.score.m ? 'ok' : 'no'}"><span class="mark">${S.score.m ? '✓' : '✕'}</span><div><b>They cannot be superimposed.</b><small>${S.score.m ? 'You predicted that.' : 'You predicted they could.'} Your best was ${S.best} of 4 groups.</small></div></li></ul>` + T.mirror.result + src(['5.2']) + `<div class="row">${btn('next', 'Next: find out why')}</div>`;
+    else h += `<ul class="verdict"><li class="${S.score.m ? 'ok' : 'no'}"><span class="mark">${S.score.m ? '✓' : '✕'}</span><div><b>They cannot be superimposed.</b><small>${S.score.m ? 'You predicted that.' : 'You predicted they could.'} Your best was ${S.best} of 4 groups.</small></div></li><li class="${S.preds.mw === 'swap' ? 'ok' : 'no'}"><span class="mark">${S.preds.mw === 'swap' ? '✓' : '✕'}</span><div><b>Your reason: ${whyL(S.preds.mw)}</b><small>${S.preds.mw === 'swap' ? '' : 'What the test shows: two groups on one carbon stay swapped.'}</small></div></li></ul>` + T.mirror.result + src(['5.2']) + `<div class="row">${btn('next', 'Next: find out why')}</div>`;
   } else if (st === 'center') {
     h = `<p class="kick">Step 2 of 5</p><h2 tabindex="-1">${T.center.title}</h2>${T.center.intro}${fbBox()}${src(['5.2'])}<div class="row">${btn('next', 'Next: rank the groups', 'pri', sub !== 'done')}</div>`;
   } else if (st === 'rank') {
@@ -188,7 +203,7 @@ function render() {
     else h += `<ul class="verdict"><li class="${S.score.call ? 'ok' : 'no'}"><span class="mark">${S.score.call ? '✓' : '✕'}</span><div><b>Counterclockwise. A is (S)-ibuprofen.</b><small>${S.score.call ? 'Correct.' : 'You chose clockwise.'}</small></div></li></ul>` + T.turn.result + src(['5.5']) + `<div class="row">${btn('next', 'Next: test both in the body')}</div>`;
   } else if (st === 'pocket') {
     h = `<p class="kick">Step 5 of 5</p><h2 tabindex="-1">${T.pocket.title}</h2>`;
-    if (sub === 'predict') h += T.pocket.intro + `<fieldset class="q"><legend>${T.pocket.q}</legend>${seg('p', [['both', 'Both seat'], ['one', 'Only one seats'], ['none', 'Neither seats']])}</fieldset><div class="row">${btn('dockA', 'Dock molecule A', 'pri', !S.preds.p)}${S.preds.p ? '' : '<span class="hint" id="need">Choose a prediction first.</span>'}</div>`;
+    if (sub === 'predict') h += T.pocket.intro + `<fieldset class="q"><legend>${T.pocket.q}</legend>${seg('p', [['both', 'Both seat'], ['one', 'Only one seats'], ['none', 'Neither seats']])}</fieldset><fieldset class="q"><legend>How sure are you?</legend>${seg('pc', [['0', 'Guessing'], ['1', 'Fairly sure'], ['2', 'Very sure']])}</fieldset><div class="row">${btn('dockA', 'Dock molecule A', 'pri', !(S.preds.p && S.preds.pc))}${S.preds.p && S.preds.pc ? '' : '<span class="hint" id="need">Choose a prediction and how sure you are.</span>'}</div>`;
     else if (sub === 'dockA') h += T.pocket.dockA + `<div class="row">${btn('showDock', 'Show me', 'ghost')}</div>`;
     else if (sub === 'seatedA') h += T.pocket.seatedA + `<div class="row">${btn('dockB', 'Now dock molecule B')}</div>`;
     else if (sub === 'dockB') h += T.pocket.dockB + `<div class="row">${btn('giveUp', 'It will not seat', 'pri', S.best < 2 && S.timer < 14)}</div>`;
@@ -196,13 +211,14 @@ function render() {
   } else if (st === 'debrief') {
     const sc = S.score, items = [['m', 'Predicted the mirror test'], ['center', 'Found the chirality center on the first try'], ['rank', 'Ranked the groups without a miss'], ['call', 'Named the configuration'], ['p', 'Predicted the pocket']];
     const n = items.filter(([k]) => sc[k]).length;
-    h = `<p class="kick">Debrief</p><h2 tabindex="-1">${n} of 5</h2><ul class="obj">${items.map(([k, t]) => `<li class="${sc[k] ? 'ok' : ''}"><span class="mark">${sc[k] ? '✓' : '○'}</span><div>${t}</div></li>`).join('')}</ul><h3>What you practiced</h3><ul class="try">${T.objectives.map((o) => `<li>${o}</li>`).join('')}</ul><h3>About ibuprofen</h3>${T.debrief}<p class="src">${T.credit}</p><div class="row">${btn('restart', 'Start over')}${btn('about', 'About this demo', 'ghost')}</div>`;
+    h = `<p class="kick">Debrief</p><h2 tabindex="-1">${n} of 5</h2><ul class="obj">${items.map(([k, t]) => `<li class="${sc[k] ? 'ok' : ''}"><span class="mark">${sc[k] ? '✓' : '○'}</span><div>${t}</div></li>`).join('')}</ul><h3>Your reasoning, played back</h3><ul class="try">${trail().map((t) => `<li>${t}</li>`).join('')}</ul>${EF.html()}<h3>What you practiced</h3><ul class="try">${T.objectives.map((o) => `<li>${o}</li>`).join('')}</ul><h3>About ibuprofen</h3>${T.debrief}<p class="src">${T.credit}</p><div class="row">${btn('restart', 'Start over')}${btn('about', 'About this demo', 'ghost')}</div>`;
   }
   panel.innerHTML = h; panel.parentElement.scrollTop = 0; const h2 = panel.querySelector('h2'); if (h2 && S.focusNext) h2.focus({ preventScroll: true }); S.focusNext = true;
 }
 panel.addEventListener('change', (e) => {
   const t = e.target; if (t.type !== 'radio') return; S.preds[t.name] = t.value;
   if (t.name === 'c') { S.score.call = t.value === viewedConfig(A); S.sub = 'done'; tone(S.score.call ? 660 : 180, 0.05); render(); return; }
+  const okNow = S.step === 'mirror' ? !!(S.preds.m && S.preds.mw) : S.step === 'pocket' ? !!(S.preds.p && S.preds.pc) : true; if (!okNow) return;
   const b = panel.querySelector('.btn.pri'); if (b) b.disabled = false; const need = $('#need'); if (need) need.remove();
 });
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-act]'); if (b) act(b.dataset.act); });
@@ -225,14 +241,14 @@ function go(step, sub) {
 function act(a) {
   if (a === 'begin') { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { } go('mirror', 'predict'); }
   else if (a === 'mirrorTry') { S.sub = 'try'; S.active = B; ghost.group.visible = true; ghost.group.position.copy(B.pos); ghost.group.quaternion.copy(A.group.quaternion); hint('Drag molecule B. The faint outline is molecule A.'); render(); }
-  else if (a === 'mirrorCheck') { S.score.m = S.preds.m === 'no'; S.sub = 'done'; S.active = null; ghost.group.visible = false; meter(null); hint(''); B.tq = mirrorQ(Q0); render(); }
+  else if (a === 'mirrorCheck') { S.log.best = S.best; S.score.m = S.preds.m === 'no'; (EF.items.find((i) => i.label === 'Mirror test: prediction') || {}).ok = S.score.m; S.sub = 'done'; S.active = null; ghost.group.visible = false; meter(null); hint(''); B.tq = mirrorQ(Q0); render(); }
   else if (a === 'next') go(ORDER[ORDER.indexOf(S.step) + 1], S.step === 'title' ? 'predict' : undefined);
-  else if (a === 'showTurn') { const away = tmp.copy(A.group.position).sub(camera.position).normalize(); worldDir(A, 'H', a1); A.tq = new THREE.Quaternion().setFromUnitVectors(a1, away).multiply(A.group.quaternion); }
+  else if (a === 'showTurn') { S.log.shown.push('turn'); const away = tmp.copy(A.group.position).sub(camera.position).normalize(); worldDir(A, 'H', a1); A.tq = new THREE.Quaternion().setFromUnitVectors(a1, away).multiply(A.group.quaternion); }
   else if (a === 'dockA') { S.sub = 'dockA'; S.active = A; A.pos.set(0, PY + HOVER, 0); S.best = 0; hint('Drag to turn molecule A until all three contacts light.'); render(); }
-  else if (a === 'showDock') { A.tq = new THREE.Quaternion(); }
+  else if (a === 'showDock') { S.log.shown.push('dock'); A.tq = new THREE.Quaternion(); }
   else if (a === 'dockB') { S.sub = 'dockB'; S.active = B; A.pos.set(-12, PY + 6, -5); A.tq = new THREE.Quaternion().setFromEuler(new THREE.Euler(0.6, 0.9, 0.2)); B.pos.set(0, PY + HOVER, 0); S.best = 0; S.timer = 0; hint('Drag to turn molecule B. Try for three contacts.'); render(); }
-  else if (a === 'giveUp') { S.score.p = S.preds.p === 'one'; S.sub = 'done'; S.active = null; meter(null); hint(''); render(); }
-  else if (a === 'restart') { S.score = {}; S.preds = {}; S.rank = []; S.centerMiss = false; A.group.quaternion.copy(Q0); B.group.quaternion.copy(mirrorQ(Q0)); go('title'); }
+  else if (a === 'giveUp') { S.score.p = S.preds.p === 'one'; Object.assign(EF.items.find((i) => i.label === 'Receptor: prediction') || {}, { ok: S.score.p, conf: +S.preds.pc }); S.sub = 'done'; S.active = null; meter(null); hint(''); render(); }
+  else if (a === 'restart') { S.log = { center: [], rank: 0, shown: [] }; S.score = {}; S.preds = {}; S.rank = []; S.centerMiss = false; A.group.quaternion.copy(Q0); B.group.quaternion.copy(mirrorQ(Q0)); go('title'); }
   else if (a === 'about') { $('#modal').hidden = false; $('#modalClose').focus(); }
   else if (a === 'closeAbout') closeAbout();
   else if (a === 'sound') { soundOn = !soundOn; $('#soundBtn').textContent = soundOn ? 'Sound on' : 'Sound off'; $('#soundBtn').setAttribute('aria-pressed', soundOn); }
